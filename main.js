@@ -1,14 +1,15 @@
+
 /*
  * @Author: tanghaixiang@xindong.com 
  * @Date: 2019-01-31 10:32:19 
  * @Last Modified by: tanghaixiang@xindong.com
- * @Last Modified time: 2019-07-25 22:54:49
+ * @Last Modified time: 2019-04-12 21:50:09
  */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const grpc = require('@grpc/grpc-js');
+const grpc = require('grpc');
 const ISO6391 = require('iso-639-1');
 const healthMsg = require('sagi-api/health/v1/health_pb');
 const healthRpc = require('sagi-api/health/v1/health_grpc_pb');
@@ -17,7 +18,7 @@ const translationRpc = require('sagi-api/translation/v1/translation_grpc_pb');
 
 const args = process.argv && process.argv.splice(2, process.argv.length);
 
-let endpoint = 'apis.sagittarius.ai:8443';
+let endpoint = 'apis.stage.sagittarius.ai:8443';
 const certs = grpc.credentials.createSsl(
   fs.readFileSync(path.join(__dirname, '/certs/ca.pem')),
   fs.readFileSync(path.join(__dirname, '/certs/key.pem')),
@@ -66,35 +67,61 @@ const mediaQuickHash = (f) => {
  * @param {String} mediaIdentity media file hash code
  * @param {String} languageCode  ISO-639-1 language code
  */
-const send = async (mediaIdentity, languageCode) => {
+const send = async (mediaIdentity) => {
   return new Promise((resolve, reject) => {
     const client = new translationRpc.TranslationClient(endpoint, certs);
-    const req = new translationMsg.MediaTranslationRequest();
-    req.setMediaIdentity(mediaIdentity);
-    req.setLanguageCode(languageCode);
-    client.translateMedia(req, (err, res) => {
+    const req = new translationMsg.TranscriptRequest();
+    req.setTranscriptIdentity(mediaIdentity);
+    client.transcript(req, (err, res) => {
       if (err) {
-        resolve(err);
+        reject(err);
       }
       resolve(res);
     });
-  })
+  });
 };
 
-const hash = mediaQuickHash(args[0]);
-let languages = ISO6391.getAllCodes();
-languages = [];
-languages.push('en', 'zh')
-languages.forEach(async (l) => {
+// const hash = mediaQuickHash(args[0]);
+// let languages = ISO6391.getAllCodes();
+// languages = [];
+// languages.push('en', 'zh')
+// languages.forEach(async (l) => {
+//   const s = new Date();
+//   const r = await send(hash, l);
+//   const d = new Date();
+//   let res = '';
+//   if (r instanceof Error) {
+//     res = `
+//       ${s.toISOString()}--filePath    : ${args[0]}\n
+//       ${s.toISOString()}--mediaHash   : ${hash}\n
+//       ${s.toISOString()}--languageCode: ${l}\n
+//       --------total time: ${d - s}\n
+//       ${d.toISOString()}-- Error:
+//       -------------------------
+//       ${r.toString()}
+//     `
+//   } else {
+//     res = `
+//       ${s.toISOString()}--filePath    : ${args[0]}\n
+//       ${s.toISOString()}--mediaHash   : ${hash}\n
+//       ${s.toISOString()}--languageCode: ${l}\n
+//       --------total time: ${d - s}\n
+//       ${d.toISOString()}-- Success:
+//       --------${JSON.stringify(r, null, "  ")}
+//     `
+//   }
+//   console.log(res);
+// });
+const hash = args[0];
+const run = async () => {
+  const r = await send(hash);
   const s = new Date();
-  const r = await send(hash, l);
   const d = new Date();
   let res = '';
   if (r instanceof Error) {
     res = `
       ${s.toISOString()}--filePath    : ${args[0]}\n
       ${s.toISOString()}--mediaHash   : ${hash}\n
-      ${s.toISOString()}--languageCode: ${l}\n
       --------total time: ${d - s}\n
       ${d.toISOString()}-- Error:
       -------------------------
@@ -104,11 +131,12 @@ languages.forEach(async (l) => {
     res = `
       ${s.toISOString()}--filePath    : ${args[0]}\n
       ${s.toISOString()}--mediaHash   : ${hash}\n
-      ${s.toISOString()}--languageCode: ${l}\n
       --------total time: ${d - s}\n
       ${d.toISOString()}-- Success:
       --------${JSON.stringify(r, null, "  ")}
     `
   }
   console.log(res);
-});
+}
+
+run();

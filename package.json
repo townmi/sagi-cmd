@@ -1,11 +1,15 @@
 {
   "dependencies": {
     "google-protobuf": "^3.6.1",
-    "grpc": "^1.18.0",
+    "@grpc/grpc-js": "^0.2.0",
     "iso-639-1": "^2.0.3",
-    "sagi-api": "^0.0.8"
+    "sagi-api": "^0.0.18"
+  },
+  "_moduleAliases": {
+    "grpc": "node_modules/@grpc/grpc-js"
   },
   "scripts": {
-    "look": "node index.js"
+    "look": "node index.js",
+    "see": "node main.js"
   }
 }
